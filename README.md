@@ -1,17 +1,16 @@
 # Bíblia DevOps — Mapa Mental
 
-<!-- Badges (substitua SEU_USUARIO e NOME_DO_REPO) -->
-![GitHub last commit](https://img.shields.io/github/last-commit/SEU_USUARIO/NOME_DO_REPO)
-![GitHub repo size](https://img.shields.io/github/repo-size/SEU_USUARIO/NOME_DO_REPO)
-![GitHub stars](https://img.shields.io/github/stars/SEU_USUARIO/NOME_DO_REPO?style=social)
-![GitHub forks](https://img.shields.io/github/forks/SEU_USUARIO/NOME_DO_REPO?style=social)
-![GitHub issues](https://img.shields.io/github/issues/SEU_USUARIO/NOME_DO_REPO)
-![GitHub license](https://img.shields.io/github/license/SEU_USUARIO/NOME_DO_REPO)
+![GitHub last commit](https://img.shields.io/github/last-commit/josegoncalves1/mind_map_devops)
+![GitHub repo size](https://img.shields.io/github/repo-size/josegoncalves1/mind_map_devops)
+![GitHub stars](https://img.shields.io/github/stars/josegoncalves1/mind_map_devops?style=social)
+![GitHub forks](https://img.shields.io/github/forks/josegoncalves1/mind_map_devops?style=social)
+![GitHub issues](https://img.shields.io/github/issues/josegoncalves1/mind_map_devops)
+![GitHub license](https://img.shields.io/github/license/josegoncalves1/mind_map_devops)
 
 Mapa mental interativo em D3.js.
 
 ## Demo
-https://SEU_USUARIO.github.io/NOME_DO_REPO/
+https://josegoncalves1.github.io/mind_map_devops/
 
 ## About
 Um mapa mental completo de DevOps com navegação por zoom e expansão de níveis.
