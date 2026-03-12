@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia DevOps - Mapa Mental Completo (Raio-X)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #ffffff; /* Fundo branco obrigatório */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            overflow: hidden; 
+        }
+        #map-container { 
+            width: 100vw; 
+            height: 100vh; 
+            cursor: grab; 
+        }
+        #map-container:active { 
+            cursor: grabbing; 
+        }
+        .node circle { 
+            fill: #fff; 
+            stroke-width: 2px; 
+            transition: all 0.3s ease;
+        }
+        .node circle:hover {
+            stroke-width: 4px;
+        }
+        .node { cursor: pointer; }
+        .node.selected .node-core {
+            stroke-width: 4px;
+        }
+        .node.dim { opacity: 0.15; }
+        .node.dim text { display: none; }
+        .link.dim { opacity: 0.05; }
+        .node text { 
+            font-size: 11px; 
+            fill: #1a202c; 
+            pointer-events: auto; 
+            cursor: pointer;
+            /* Sombra no texto para máxima legibilidade sobre as linhas */
+            text-shadow: 0 1px 3px #fff, 0 -1px 3px #fff, 1px 0 3px #fff, -1px 0 3px #fff; 
+        }
+        .link { 
+            fill: none; 
+            stroke-opacity: 0.5; 
+            stroke-width: 1.5px; 
+            pointer-events: none;
+        }
+        
+        /* Estilização da Legenda Lateral */
+        .legend-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            scrollbar-width: thin;
+        }
+        .legend-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .legend-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        .info-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="bg-white">
+
+    <!-- Legenda Fixa Lateral -->
+    <div class="legend-container fixed top-4 right-4 w-72 max-h-[90vh] overflow-y-auto p-5 rounded-xl border border-gray-200 z-10">
+        <h3 class="font-bold text-sm mb-4 text-gray-900 border-b border-gray-200 pb-2 uppercase tracking-wider flex items-center justify-between">
+            Legenda / Siglas
+            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </h3>
+        <ul class="space-y-2 text-xs text-gray-700">
+            <li><strong class="text-blue-700">ADR:</strong> Architecture Decision Record</li>
+            <li><strong class="text-blue-700">AIOps:</strong> AI for IT Operations</li>
+            <li><strong class="text-blue-700">CD:</strong> Continuous Delivery/Deployment</li>
+            <li><strong class="text-blue-700">CI:</strong> Continuous Integration</li>
+            <li><strong class="text-blue-700">DAST:</strong> Dynamic App Security Testing</li>
+            <li><strong class="text-blue-700">DR:</strong> Disaster Recovery</li>
+            <li><strong class="text-blue-700">E2E:</strong> End-to-End (Testes)</li>
+            <li><strong class="text-blue-700">HPA/VPA:</strong> Horizontal/Vertical Pod Autoscaler</li>
+            <li><strong class="text-blue-700">IaC:</strong> Infrastructure as Code</li>
+            <li><strong class="text-blue-700">IDP:</strong> Internal Developer Platform</li>
+            <li><strong class="text-blue-700">K8s:</strong> Kubernetes</li>
+            <li><strong class="text-blue-700">MLOps:</strong> Machine Learning Operations</li>
+            <li><strong class="text-blue-700">MTTR:</strong> Mean Time To Recovery</li>
+            <li><strong class="text-blue-700">OCI:</strong> Open Container Initiative</li>
+            <li><strong class="text-blue-700">PR/MR:</strong> Pull Request / Merge Request</li>
+            <li><strong class="text-blue-700">RBAC:</strong> Role-Based Access Control</li>
+            <li><strong class="text-blue-700">RPO:</strong> Recovery Point Objective</li>
+            <li><strong class="text-blue-700">RTO:</strong> Recovery Time Objective</li>
+            <li><strong class="text-blue-700">SAST:</strong> Static App Security Testing</li>
+            <li><strong class="text-blue-700">SBOM:</strong> Software Bill of Materials</li>
+            <li><strong class="text-blue-700">SCA:</strong> Software Composition Analysis</li>
+            <li><strong class="text-blue-700">SCM:</strong> Source Code Management</li>
+            <li><strong class="text-blue-700">SemVer:</strong> Semantic Versioning</li>
+            <li><strong class="text-blue-700">SLA:</strong> Service Level Agreement</li>
+            <li><strong class="text-blue-700">SLI:</strong> Service Level Indicator</li>
+            <li><strong class="text-blue-700">SLO:</strong> Service Level Objective</li>
+            <li><strong class="text-blue-700">SRE:</strong> Site Reliability Engineering</li>
+        </ul>
+        <div class="mt-4 pt-3 border-t border-gray-200 text-[10px] text-gray-500 text-center">
+            Role o scroll para Zoom. <br>Arraste para navegar pelo Raio-X.
+        </div>
+    </div>
+    <div class="info-container fixed bottom-4 right-4 w-72 p-4 rounded-xl border border-gray-200 z-10">
+        <h4 class="font-bold text-xs mb-2 text-gray-900 uppercase tracking-wider">Nó selecionado</h4>
+        <div id="node-info-text" class="text-xs text-gray-700">
+            Clique em qualquer nó para ver o caminho completo.
+        </div>
+    </div>
+
+    <!-- Contêiner do Mapa Mental -->
+    <div id="map-container"></div>
+
+    <script>
+        // Estrutura de Dados Json - Profundidade ampliada / 1 a 3 palavras por nó
+        const data = {
+            name: "DEVOPS (RAIO-X)",
+            children: [
+                {
+                    name: "Cultura",
+                    children: [{name: "Colaboração"}, {name: "Blameless"}, {name: "Melhoria Contínua"}, {name: "Compartilhamento"}]
+                },
+                {
+                    name: "Processo",
+                    children: [{name: "Ágil", children: [{name: "Scrum"}, {name: "Kanban"}]}, {name: "Lean"}, {name: "Fluxo Contínuo"}]
+                },
+                {
+                    name: "Git/SCM",
+                    children: [
+                        {name: "Branching", children: [{name: "Trunk Based"}, {name: "GitFlow"}, {name: "GitHub Flow"}]},
+                        {name: "PR / MR"},
+                        {name: "Code Review"},
+                        {name: "Tags"},
+                        {name: "SemVer"},
+                        {name: "Comandos", children: [
+                            {name: "Básicos", children: [{name: "clone"}, {name: "init"}, {name: "status"}]},
+                            {name: "Trabalho", children: [{name: "add"}, {name: "commit"}]},
+                            {name: "Branch", children: [{name: "branch"}, {name: "switch"}]},
+                            {name: "Sincronia", children: [{name: "fetch"}, {name: "pull"}, {name: "push"}]},
+                            {name: "Avançados", children: [{name: "merge"}, {name: "rebase"}, {name: "stash"}, {name: "tag"}]}
+                        ]}
+                    ]
+                },
+                {
+                    name: "CI",
+                    children: [{name: "Build"}, {name: "Lint"}, {name: "Testes", children: [{name: "Unitários"}, {name: "Integração"}]}, {name: "Coverage"}, {name: "Quality Gate"}]
+                },
+                {
+                    name: "CD",
+                    children: [
+                        {name: "Deploy"}, {name: "Promoção"}, {name: "Aprovação"}, {name: "Rollback"}, {name: "Feature Flags"},
+                        {name: "Estratégias", children: [{name: "Rolling Update"}, {name: "Blue-Green"}, {name: "Canary"}]}
+                    ]
+                },
+                {
+                    name: "Pipeline",
+                    children: [{name: "Jobs"}, {name: "Stages"}, {name: "Triggers", children: [{name: "Webhooks"}, {name: "Cron"}]}, {name: "Artefatos"}, {name: "Cache"}]
+                },
+                {
+                    name: "Artefato",
+                    children: [{name: "Packagers", children: [{name: "npm/yarn"}, {name: "Maven/Gradle"}]}, {name: "Imagens OCI"}, {name: "Registries", children: [{name: "Docker Hub"}, {name: "ECR/GCR"}]}, {name: "Versionamento"}]
+                },
+                {
+                    name: "IaC",
+                    children: [{name: "Módulos"}, {name: "State Mgmt"}, {name: "Drift Detection"}, {name: "PR-Review"}, {name: "Providers"}]
+                },
+                {
+                    name: "Configuração",
+                    children: [{name: "Gerenciadores", children: [{name: "Ansible"}, {name: "Chef/Puppet"}]}, {name: "Desired State"}, {name: "Imutabilidade"}, {name: "Templates"}]
+                },
+                {
+                    name: "Segredos",
+                    children: [{name: "Cofres", children: [{name: "HashiCorp Vault"}, {name: "AWS KMS"}]}, {name: "Rotação"}, {name: "Criptografia"}, {name: "RBAC"}]
+                },
+                {
+                    name: "Containers",
+                    children: [{name: "Runtimes", children: [{name: "Docker"}, {name: "Containerd"}, {name: "Podman"}]}, {name: "Imagens"}, {name: "Layers"}, {name: "Padrão OCI"}]
+                },
+                {
+                    name: "Orquestração",
+                    children: [
+                        {name: "K8s (Kubernetes)", children: [
+                            {name: "Deployments"}, {name: "Services (Svc)"}, {name: "Ingress"}, {name: "HPA / VPA"}, {name: "Policies"}
+                        ]},
+                        {name: "Helm Charts"}, {name: "Nodes/Pods"}
+                    ]
+                },
+                {
+                    name: "Cloud",
+                    children: [{name: "Modelos", children: [{name: "IaaS"}, {name: "PaaS"}, {name: "SaaS"}]}, {name: "Estratégia", children: [{name: "Multi-cloud"}, {name: "Híbrida"}]}, {name: "Networking", children: [{name: "VPC"}, {name: "Subnets"}]}, {name: "IAM"}]
+                },
+                {
+                    name: "Redes",
+                    children: [{name: "DNS"}, {name: "Load Balancer", children: [{name: "L4 (TCP)"}, {name: "L7 (HTTP)"}]}, {name: "Firewalls (WAF)"}, {name: "Service Mesh", children: [{name: "Istio"}, {name: "Linkerd"}]}, {name: "API Gateway"}]
+                },
+                {
+                    name: "Dados/Storage",
+                    children: [{name: "Block Storage"}, {name: "Object Storage", children: [{name: "S3"}]}, {name: "Bancos", children: [{name: "Relacional"}, {name: "NoSQL"}]}, {name: "Migrations"}]
+                },
+                {
+                    name: "Observabilidade",
+                    children: [
+                        {name: "Pilares", children: [{name: "Logs"}, {name: "Métricas"}, {name: "Tracing"}]},
+                        {name: "Alertas"}, {name: "Dashboards", children: [{name: "Grafana"}, {name: "Kibana"}]}
+                    ]
+                },
+                {
+                    name: "SRE",
+                    children: [
+                        {name: "Indicadores", children: [{name: "SLI"}, {name: "SLO"}, {name: "SLA"}]},
+                        {name: "Error Budget"}, {name: "Capacity Plan"}, {name: "Performance"}]
+                },
+                {
+                    name: "Segurança",
+                    children: [
+                        {name: "Análises", children: [{name: "SAST (Estático)"}, {name: "DAST (Dinâmico)"}, {name: "SCA (Deps)"}]},
+                        {name: "Hardening"}, {name: "Compliance"}, {name: "SBOM"}
+                    ]
+                },
+                {
+                    name: "Supply Chain",
+                    children: [{name: "Assinatura"}, {name: "Proveniência"}, {name: "Sigstore"}, {name: "Níveis SLSA"}]
+                },
+                {
+                    name: "Testes",
+                    children: [{name: "Carga / Stress"}, {name: "Eng. de Caos"}, {name: "Mutação"}, {name: "E2E"}, {name: "Smoke Tests"}]
+                },
+                {
+                    name: "Ambientes",
+                    children: [{name: "Dev"}, {name: "QA / Test"}, {name: "Staging"}, {name: "Produção"}, {name: "Efêmeros"}]
+                },
+                {
+                    name: "Automação",
+                    children: [{name: "Scripts", children: [{name: "Bash"}, {name: "Python"}, {name: "Go"}]}, {name: "Tarefas Cron"}, {name: "Webhooks"}, {name: "Event-driven"}]
+                },
+                {
+                    name: "Incidentes",
+                    children: [{name: "On-call"}, {name: "Post-mortem"}, {name: "Runbooks"}, {name: "Triagem"}]
+                },
+                {
+                    name: "DR/Backups",
+                    children: [{name: "Objetivos", children: [{name: "RPO"}, {name: "RTO"}]}, {name: "Snapshots"}, {name: "Failover"}, {name: "Testes DR"}]
+                },
+                {
+                    name: "FinOps",
+                    children: [{name: "Custos"}, {name: "Budgets"}, {name: "Alertas"}, {name: "Tagging"}, {name: "Rightsizing"}]
+                },
+                {
+                    name: "Platform Eng",
+                    children: [{name: "IDP"}, {name: "Self-service"}, {name: "Golden Paths"}, {name: "Portais", children: [{name: "Backstage"}]}]
+                },
+                {
+                    name: "Métricas",
+                    children: [
+                        {name: "DORA", children: [{name: "Lead Time"}, {name: "Deploy Freq"}, {name: "MTTR"}, {name: "Change Fail"}]},
+                        {name: "SPACE"}
+                    ]
+                },
+                {
+                    name: "Docs",
+                    children: [{name: "Markdown"}, {name: "Docs-as-Code"}, {name: "ADRs"}, {name: "Wiki Interna"}]
+                },
+                {
+                    name: "Evolução",
+                    children: [{name: "GitOps", children: [{name: "ArgoCD"}, {name: "Flux"}]}, {name: "DevSecOps"}, {name: "MLOps"}, {name: "AIOps"}]
+                }
+            ]
+        };
+
+        // Adiciona mais 8 níveis, mas colapsados por padrão (para não poluir o mapa)
+        const extraDepthLabels = [
+            "Definição", "Objetivo", "Práticas", "Ferramentas",
+            "Métricas", "Riscos", "Anti-padrões", "Exemplos"
+        ];
+
+        const addExtraDepth = (node, levels, labels) => {
+            if (!node.children || node.children.length === 0) {
+                let current = node;
+                for (let i = 0; i < levels; i += 1) {
+                    const child = { name: labels[i % labels.length], _extra: true };
+                    current.children = [child];
+                    current = child;
+                }
+                return;
+            }
+            node.children.forEach(child => addExtraDepth(child, levels, labels));
+        };
+
+        addExtraDepth(data, 8, extraDepthLabels);
+
+        // Configuração D3.js
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const cx = width / 2;
+        const cy = height / 2;
+        let currentCx = cx;
+        let currentCy = cy;
+        
+        // Raio base e espaçamento por nível (ajustado dinamicamente)
+        const baseRadius = 1200;
+        const levelGap = 110;
+
+        // Adiciona SVG com Zoom behavior
+        const svg = d3.select("#map-container").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        const zoomBehavior = d3.zoom()
+            .scaleExtent([0.15, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoomBehavior);
+        
+        // Posicionamento inicial (Centralizado e afastado para ver tudo)
+        const initialScale = 0.35;
+        svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(cx, cy).scale(initialScale));
+
+        // Layout Radial Tidy Tree
+        const tree = d3.tree()
+            .separation((a, b) => (a.parent == b.parent ? 1.6 : 2.6) / a.depth);
+
+        const root = d3.hierarchy(data);
+        // Colapsa os níveis extras
+        root.each(d => {
+            if (d.children && d.children[0] && d.children[0].data && d.children[0].data._extra) {
+                d._children = d.children;
+                d.children = null;
+            }
+        });
+        let selectedNode = null;
+        let focusNode = null;
+        const nodeInfoText = document.getElementById("node-info-text");
+        const getPathLabel = (d) => d.ancestors().reverse().map(n => n.data.name).join(" > ");
+        const isInFocus = (d) => {
+            if (!focusNode) return true;
+            return d === focusNode || focusNode.ancestors().includes(d) || d.ancestors().includes(focusNode);
+        };
+        const shouldShowLabel = (d) => {
+            if (focusNode) return isInFocus(d);
+            return d.depth <= 2;
+        };
+
+        // Paleta de cores moderna por categoria (Categorias principais)
+        const colors = [
+            "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", 
+            "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", 
+            "#008080", "#e6beff", "#9a6324", "#fffac8", "#800000", 
+            "#aaffc3", "#808000", "#ffd8b1", "#000075", "#808080",
+            "#ff7f50", "#6495ed", "#dc143c", "#00ced1", "#ff1493",
+            "#228b22", "#4b0082", "#ff4500", "#2e8b57"
+        ];
+        
+        const colorScale = d3.scaleOrdinal(colors);
+
+        // Aplicar cores herdadas aos nós
+        if (root.children) {
+            root.children.forEach((child, i) => {
+                child.color = colorScale(i);
+                child.each(d => d.color = child.color);
+            });
+        }
+        root.color = "#111827"; // Cor do nó central
+
+        const render = () => {
+            g.selectAll("*").remove();
+            const maxDepth = root.height || 1;
+            const dynamicRadius = Math.max(baseRadius, (maxDepth + 1) * levelGap);
+            tree.size([2 * Math.PI, dynamicRadius]);
+            tree(root);
+
+            // Desenhar Links (Linhas radiais suaves)
+            const link = g.append("g")
+                .attr("fill", "none")
+                .selectAll("path")
+                .data(root.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("stroke", d => d.target.color)
+                .attr("d", d3.linkRadial()
+                    .angle(d => d.x)
+                    .radius(d => d.y));
+
+            // Desenhar Nós
+            const k = d3.zoomTransform(svg.node()).k || 1;
+            const clickRRoot = 24 / k;
+            const clickRInner = 18 / k;
+            const clickRLeaf = 14 / k;
+
+            const node = g.append("g")
+                .selectAll("g")
+                .data(root.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`)
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    selectedNode = d;
+                    focusNode = d;
+                    if (nodeInfoText) {
+                        nodeInfoText.textContent = getPathLabel(d);
+                    }
+                    if (d.children) {
+                        d._children = d.children;
+                        d.children = null;
+                        render();
+                        return;
+                    }
+                    if (d._children) {
+                        d.children = d._children;
+                        d._children = null;
+                        render();
+                        return;
+                    }
+                    render();
+                });
+
+            // Área de clique ampliada (invisível)
+            node.append("circle")
+                .attr("r", d => d.depth === 0 ? clickRRoot : ((d.children || d._children) ? clickRInner : clickRLeaf))
+                .attr("fill", "transparent")
+                .attr("stroke", "none")
+                .style("pointer-events", "all");
+
+            // Círculos dos nós
+            node.append("circle")
+                .attr("r", d => d.depth === 0 ? 12 : ((d.children || d._children) ? 6 : 4))
+                .attr("stroke", d => d.color)
+                .attr("fill", d => (d.children || d._children) ? "#fff" : d.color)
+                .attr("class", "node-core");
+
+            // Texto dos nós (Ajuste de ângulo para ficar sempre legível e não de ponta cabeça)
+            node.append("text")
+                .attr("dy", "0.31em")
+                .attr("x", d => d.x < Math.PI === !(d.children || d._children) ? 8 : -8)
+                .attr("text-anchor", d => d.x < Math.PI === !(d.children || d._children) ? "start" : "end")
+                .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+                .text(d => d.data.name)
+                .style("font-weight", d => d.depth === 0 ? "900" : (d.depth === 1 ? "bold" : "500"))
+                .style("font-size", d => d.depth === 0 ? "24px" : (d.depth === 1 ? "15px" : (d.depth === 2 ? "12px" : (d.depth === 3 ? "10px" : "9px"))))
+                .style("letter-spacing", d => d.depth === 0 ? "1px" : "normal")
+                .style("display", d => shouldShowLabel(d) ? "block" : "none");
+
+            // Área de clique ampliada para o texto (invisível)
+            node.each(function() {
+                const text = d3.select(this).select("text");
+                const textNode = text.node();
+                if (!textNode) return;
+                const bbox = textNode.getBBox();
+                const pad = 6 / k;
+                d3.select(this).insert("rect", "text")
+                    .attr("x", bbox.x - pad)
+                    .attr("y", bbox.y - pad)
+                    .attr("width", bbox.width + pad * 2)
+                    .attr("height", bbox.height + pad * 2)
+                    .attr("fill", "transparent")
+                    .attr("stroke", "none")
+                    .style("pointer-events", "all");
+            });
+
+            node.classed("selected", d => d === selectedNode);
+            node.classed("dim", d => focusNode ? !isInFocus(d) : false);
+            link.classed("dim", d => focusNode ? !isInFocus(d.target) : false);
+        };
+
+        svg.on("click", () => {
+            selectedNode = null;
+            focusNode = null;
+            if (nodeInfoText) {
+                nodeInfoText.textContent = "Clique em qualquer nó para ver o caminho completo.";
+            }
+            render();
+        });
+
+        render();
+
+        // Atualizar canvas no redimensionamento da janela
+        window.addEventListener("resize", () => {
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            svg.attr("width", newWidth).attr("height", newHeight);
+
+            const newCx = newWidth / 2;
+            const newCy = newHeight / 2;
+            const t = d3.zoomTransform(svg.node());
+            const deltaX = newCx - currentCx;
+            const deltaY = newCy - currentCy;
+            currentCx = newCx;
+            currentCy = newCy;
+
+            const nextTransform = d3.zoomIdentity.translate(t.x + deltaX, t.y + deltaY).scale(t.k);
+            svg.call(zoomBehavior.transform, nextTransform);
+        });
+    </script>
+</body>
+</html>
