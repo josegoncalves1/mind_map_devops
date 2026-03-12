@@ -12,6 +12,8 @@ Mapa mental interativo em D3.js.
 ## Demo
 https://josegoncalves1.github.io/mind_map_devops/
 
+[![Mapa DevOps](preview.png)](https://josegoncalves1.github.io/mind_map_devops/)
+
 ## About
 Um mapa mental completo de DevOps com navegação por zoom e expansão de níveis.
 
